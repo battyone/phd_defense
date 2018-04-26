@@ -1,62 +1,54 @@
-"""
-============
-Oscilloscope
-============
-
-Emulates an oscilloscope.
-"""
-
+"""Demo of spikes and filtering"""
 import numpy as np
 from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-
-class Scope(object):
-    def __init__(self, ax, maxt=2, dt=0.02):
+class Spikes():
+    def __init__(self, ax, window=2, t_max=5, dt=0.02):
         self.ax = ax
         self.dt = dt
-        self.maxt = maxt
-        self.tdata = [0]
-        self.ydata = [0]
-        self.line = Line2D(self.tdata, self.ydata)
+        self.t_max = t_max
+        self.t_data = np.arange(0, 2*t_max, dt)
+        self.y_data = np.random.sample(len(self.t_data))
+
+        self.t_display = [self.t_data[0]]
+        self.y_display = [self.y_data[0]]
+
+        self.line = Line2D(self.t_display, self.y_display)
         self.ax.add_line(self.line)
-        self.ax.set_ylim(-.1, 1.1)
-        self.ax.set_xlim(0, self.maxt)
+        self.w_idx = np.array([0, 1], dtype=int) # window indices
+        self.window = [0, window]
+        self.ax.set_xlim(self.window[0], self.window[1])
 
     def update(self, y):
-        lastt = self.tdata[-1]
-        if lastt > self.tdata[0] + self.maxt:  # reset the arrays
-            self.tdata = [self.tdata[-1]]
-            self.ydata = [self.ydata[-1]]
-            self.ax.set_xlim(self.tdata[0], self.tdata[0] + self.maxt)
-            self.ax.figure.canvas.draw()
+        if self.t_display[-1] < self.window[1]:
+            self.w_idx[1] += 1
+            self.t_display = self.t_data[self.w_idx[0]:self.w_idx[1]]
+            self.y_display = self.y_data[self.w_idx[0]:self.w_idx[1]]
+        else:
+            self.w_idx += 1
+            self.t_display = self.t_data[self.w_idx[0]:self.w_idx[1]]
+            self.y_display = self.y_data[self.w_idx[0]:self.w_idx[1]]
+            self.window[0] = self.t_display[0]
+            self.window[1] = self.t_display[1]
+            self.ax.set_xlim(self.window[0], self.window[1])
 
-        t = self.tdata[-1] + self.dt
-        self.tdata.append(t)
-        self.ydata.append(y)
-        self.line.set_data(self.tdata, self.ydata)
+        self.line.set_data(self.t_display, self.y_display)
+        self.ax.figure.canvas.draw()
         return self.line,
 
-
-def emitter(p=0.03):
-    'return a random value with probability p, else 0'
-    while True:
-        v = np.random.rand(1)
-        if v > p:
-            yield 0.
-        else:
-            yield np.random.rand(1)
+    def get_framecount(self):
+        framecount = int(np.ceil(self.t_max/self.dt))
+        return framecount
 
 # Fixing random state for reproducibility
 np.random.seed(19680801)
 
-
 fig, ax = plt.subplots()
-scope = Scope(ax)
+spikes = Spikes(ax)
 
-# pass a generator in "emitter" to produce data for the update func
-ani = animation.FuncAnimation(fig, scope.update, emitter, interval=10,
-                              blit=True)
+ani = animation.FuncAnimation(
+    fig, spikes.update, spikes.get_framecount(), interval=10, blit=True)
 
 plt.show()
