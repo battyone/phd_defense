@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 class Spikes():
-    def __init__(self, ax, window=2, t_max=10, dt=0.02):
+    def __init__(self, ax, window=2, t_max=5, dt=0.01):
         self.ax = ax
         self.dt = dt
         self.w_size = window
@@ -54,8 +54,10 @@ np.random.seed(19680801)
 fig, ax = plt.subplots()
 spikes = Spikes(ax)
 
+interval_ms = spikes.dt*1E3
 ani = animation.FuncAnimation(
-    fig, spikes.update, spikes.w_idx_generator, interval=10, blit=True, repeat=False)
+    fig, spikes.update, spikes.w_idx_generator, interval=interval_ms, blit=True, repeat=False)
 
-ani.save("test.gif")
+# ani.save("test.gif", dpi=80, writer="imagemagick")
+ani.save("test.mp4", fps=30, extra_args=['-vcodec', 'libx264'])
 # plt.show()
